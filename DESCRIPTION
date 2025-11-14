@@ -1,0 +1,21 @@
+Package: rashomonlitegroup4
+Type: Package
+Title: Package for the four functions
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Lizzie", "Donoghue",
+      email = "jane@example.com",
+      role = c("aut", "cre")
+    )
+  )
+Description: More about what it does (maybe more than one line).
+    Continuation lines should be indented.
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE) # Add this line if you use Roxygen/devtools
+Imports: 
+    stats,
+    utils
+RoxygenNote: 7.3.3

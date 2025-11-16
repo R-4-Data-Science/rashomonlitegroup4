@@ -57,19 +57,18 @@ select_best <- function(models_df, alpha = 0.5) {
     return(data.frame())
   }
 
-  # Find the best (minimum) AIC
-  best_aic <- min(models_df$aic)
+  # Calculate number of models to select (top alpha% by count)
+  n_select <- ceiling(nrow(models_df) * alpha)
 
-  # Calculate the threshold: Best AIC * (1 + alpha)
-  aic_threshold <- best_aic * (1 + alpha)
+  # Order by AIC (lower is better) and return top alpha%
+  models_df <- models_df[order(models_df$aic), ]
 
-  # Filter and return models below the threshold
-  return(models_df[models_df$aic <= aic_threshold, ])
+  return(head(models_df, n_select))
 }
 
-# 3. grow_tree(best_df, all_vars, k_next, m)
+# 3. grow_from(best_df, all_vars, k_next, m)
 #' @export
-grow_tree <- function(best_df, all_vars, k_next, m) {
+grow_from <- function(best_df, all_vars, k_next, m) {
   if (nrow(best_df) == 0) {
     return(data.frame())
   }
@@ -188,7 +187,7 @@ run_rashomon <- function(x, y, pmax = 5, s = 1, m = 90, alpha = 0.5) {
     prior_df <- M[[as.character(k - 1)]]$best_df
 
     # Grow the tree (current_best_df contains distinct models of size k)
-    current_best_df <- grow_tree(prior_df, all_vars, k, m)
+    current_best_df <- grow_from(prior_df, all_vars, k, m)
 
     # Select best from the newly grown set
     selected_df <- select_best(current_best_df, alpha)
@@ -210,39 +209,3 @@ run_rashomon <- function(x, y, pmax = 5, s = 1, m = 90, alpha = 0.5) {
 
   return(M)
 }
-
-# Example Data Setup
-set.seed(42)
-N <- 100
-x <- data.frame(
-  age = rnorm(N, 40, 10),
-  educ = sample(1:5, N, replace = TRUE),
-  marital = sample(c(0, 1), N, replace = TRUE),
-  income = runif(N, 10000, 100000),
-  region = sample(letters[1:3], N, replace = TRUE)
-)
-# Create a binary response y
-y_prob <- 1 / (1 + exp(-(0.05 * x$age + 0.00005 * x$income - 4)))
-y <- rbinom(N, 1, y_prob)
-# Convert categorical variable to factors for glm
-x$region <- as.factor(x$region)
-x$marital <- as.factor(x$marital)
-# Remove the columns that are not suitable for simple binary glm right away
-x_for_run <- x[, c("age", "educ", "income")]
-
-# Execute the main function
-# M is the final list containing models and summaries for k=1 to pmax=3
-M <- run_rashomon(x = x_for_run, y = y, pmax = 3, s = 1, m = 90, alpha = 0.5)
-
-# Print the Summaries (Required output checks)
-# Count of models per dimension
-print("Model Counts per Dimension")
-print(sapply(M, function(k_list) k_list$model_count))
-
-# AIC Boxplots per Dimension (Summary Data Frames)
-print("AIC Summary Data Frames for Boxplots")
-print(lapply(M, function(k_list) k_list$aic_summary))
-
-# Count of models per predictor at each dimension
-print("Predictor Inclusion Counts per Dimension")
-print(lapply(M, function(k_list) k_list$predictor_counts))

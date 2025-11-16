@@ -162,50 +162,47 @@ grow_from <- function(best_df, all_vars, k_next, m) {
 }
 
 # 4. run_rashomon(x, y, pmax, s, m, alpha)
-#' @export
 run_rashomon <- function(x, y, pmax = 5, s = 1, m = 90, alpha = 0.5) {
-  assign("x", x, envir = .GlobalEnv)
-  assign("y", y, envir = .GlobalEnv)
-
   all_vars <- colnames(x)
   M <- list()
   k <- s
-
-  # Step 1: Initialize (k=s)
+  
+  # dimension k = s
   current_best_df <- fit_models_dim(x, y, k, m)
-  selected_df <- select_best(current_best_df, alpha)
-
+  selected_df     <- select_best(current_best_df, alpha)
+  
   M[[as.character(k)]] <- list(
-    best_df = selected_df,
-    model_count = nrow(selected_df),
-    aic_summary = .create_aic_summary(selected_df),
+    best_df          = selected_df,
+    model_count      = nrow(selected_df),
+    aic_summary      = .create_aic_summary(selected_df),
     predictor_counts = .count_predictors(selected_df, all_vars)
   )
-
-  # Step 2: Loop to grow up to pmax
-  for (k in (s + 1):pmax) {
-    prior_df <- M[[as.character(k - 1)]]$best_df
-
-    # Grow the tree (current_best_df contains distinct models of size k)
-    current_best_df <- grow_from(prior_df, all_vars, k, m)
-
-    # Select best from the newly grown set
-    selected_df <- select_best(current_best_df, alpha)
-
-    M[[as.character(k)]] <- list(
-      best_df = selected_df,
-      model_count = nrow(selected_df),
-      aic_summary = .create_aic_summary(selected_df),
-      predictor_counts = .count_predictors(selected_df, all_vars)
-    )
-
-    if (nrow(selected_df) == 0) {
-      break
+  
+  # grow to dimensions s+1, ..., pmax
+  if (pmax > s) {
+    for (k in (s + 1):pmax) {
+      prior_df <- M[[as.character(k - 1)]]$best_df
+      
+      current_best_df <- grow_from(
+        best_df  = prior_df,
+        all_vars = all_vars,
+        x        = x,
+        y        = y,
+        k_next   = k,
+        m        = m
+      )
+      
+      selected_df <- select_best(current_best_df, alpha)
+      
+      M[[as.character(k)]] <- list(
+        best_df          = selected_df,
+        model_count      = nrow(selected_df),
+        aic_summary      = .create_aic_summary(selected_df),
+        predictor_counts = .count_predictors(selected_df, all_vars)
+      )
+      
+      if (nrow(selected_df) == 0) break
     }
   }
-
-  # Clean up the hack variables
-  rm(x, y, envir = .GlobalEnv)
-
   return(M)
 }
